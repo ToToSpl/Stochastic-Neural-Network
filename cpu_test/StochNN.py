@@ -1,7 +1,8 @@
 from typing import List
 
-
 import numpy as np
+
+BETA = 1.0
 
 
 class StochNN:
@@ -11,6 +12,8 @@ class StochNN:
 
         self.inputSize = inputSize
         self.weights_list: List[np.mat] = []
+        self.nodes_list: List[np.mat] = []
+        self.nodes_bool_list: List[np.mat] = []
 
         inputWeights = np.zeros((hiddenLayers[0], inputSize))
         self.weights_list.append(inputWeights)
@@ -30,17 +33,26 @@ class StochNN:
     def feed_forward(self, input: np.array):
         if(input.shape[0] != self.inputSize):
             raise ValueError("Input Size error!")
-        
+
+        self.nodes_list = []
+        self.nodes_bool_list = []
+
         middleArr = np.array([])
         for i, w in enumerate(self.weights_list):
             if i == 0:
                 middleArr = np.matmul(w, input)
             else:
                 middleArr = np.matmul(w, middleArr)
-            print(middleArr)
+            middleArr, bl = self.activation_func(middleArr)
+            self.nodes_list.append(middleArr)
+            self.nodes_bool_list.append(bl)
         return middleArr
 
-        # def activation_func(self, ):
+    def activation_func(self, input: np.array):
+        rand = np.random.rand(*input.shape)
+        val = 1.0 / (1.0 + np.exp(-2.0 * BETA * input))
+        bl = (val > rand)
+        return val * bl, bl
 
 
 if __name__ == "__main__":
