@@ -2,8 +2,8 @@ from typing import List
 
 import numpy as np
 
-ALPHA_W = 0.01
-BETA = 1.0
+ALPHA_W = 0.0001
+BETA = 0.005
 
 
 class StochNN:
@@ -79,10 +79,30 @@ class StochNN:
             else:
                 derivative = np.mat(
                     deltas[i + 1]).transpose() @ np.mat(self.nodes_list[i - 1])
-            self.weights_list[i] = w - ALPHA_W * derivative
+            self.weights_list[i] = np.array(w - ALPHA_W * derivative)
 
 
 if __name__ == "__main__":
-    nn = StochNN(4, [5, 3], 2)
-    nn.feed_forward(np.array([1, 1, 1, 1]))
-    nn.backpropagation(np.array([1.0, 1.0]))
+    nn = StochNN(2, [10, 10], 1)
+    xor_map = [(np.array([1.0, 1.0]), np.array([0.0])),
+               (np.array([1.0, 0.0]), np.array([1.0])),
+               (np.array([0.0, 1.0]), np.array([1.0])),
+               (np.array([0.0, 0.0]), np.array([0.0])),
+               ]
+    # learning
+    learning_curve = []
+    BATCHES = 40
+    EPOCHS = 200
+    for _ in range(EPOCHS):
+        average = []
+        for _ in range(BATCHES):
+            for input, output in xor_map:
+                prediction = nn.feed_forward(input)
+                nn.backpropagation(output)
+            if prediction != 0.0:
+                average.append((prediction - output)**2)
+        learning_curve.append(np.array(average).mean())
+
+    from matplotlib import pyplot as plt
+    plt.plot(learning_curve)
+    plt.show()
