@@ -2,8 +2,9 @@ from typing import List
 
 import numpy as np
 
-ALPHA_W = 0.0001
-BETA = 0.005
+GAMMA_W = 0.02
+GAMMA_B = GAMMA_W
+BETA = 0.001
 
 
 class StochNN:
@@ -12,43 +13,55 @@ class StochNN:
             raise ValueError("Netowork must have hidden layer!")
 
         self.inputSize = inputSize
-        self.weights_list: List[np.mat] = []
-        self.nodes_list: List[np.mat] = []
-        self.nodes_bool_list: List[np.mat] = []
+        self.weights_list: List[np.array] = []
+        self.bias_list: List[np.array] = []
+        self.nodes_list: List[np.array] = []
+        self.nodes_bool_list: List[np.array] = []
 
         inputWeights = np.zeros((hiddenLayers[0], inputSize))
         self.weights_list.append(inputWeights)
+        inputBias = np.zeros((hiddenLayers[0], 1))
+        self.bias_list.append(inputBias)
         for i, layerSize in enumerate(hiddenLayers):
             if(i == 0):
                 continue
             weights = np.zeros((layerSize, hiddenLayers[i - 1]))
             self.weights_list.append(weights)
+            bias = np.zeros((layerSize, 1))
+            self.bias_list.append(bias)
         outputWeights = np.zeros((outputSize, hiddenLayers[-1]))
         self.weights_list.append(outputWeights)
+        outputBias = np.zeros((outputSize, 1))
+        self.bias_list.append(outputBias)
         self.randomize_weights()
+        self.randomize_biases()
 
     def randomize_weights(self, maxRand: float = 1.0) -> None:
-        self.weights_list[:] = [maxRand * np.random.rand(
-            *w.shape) for w in self.weights_list]
+        self.weights_list[:] = [
+            maxRand * np.random.rand(*w.shape) for w in self.weights_list]
+
+    def randomize_biases(self, maxRand: float = 1.0) -> None:
+        self.bias_list[:] = [
+            maxRand * np.random.rand(*b.shape) for b in self.bias_list]
 
     def feed_forward(self, input: np.array) -> np.array:
         if input.shape[0] != self.inputSize:
             raise ValueError("Input Size error!")
 
         self.nodes_list = []
-        self.nodes_bool_list = []
-        self.last_input = np.mat(input)
+        self.last_input = input[np.newaxis].T
 
-        middleArr = np.array([])
+        middleArr = None
         for i, w in enumerate(self.weights_list):
             if i == 0:
-                middleArr = w @ input
+                middleArr = w @ self.last_input
             else:
                 middleArr = w @ middleArr
+            middleArr += self.bias_list[i]
             middleArr, bl = self.activation_func(middleArr)
             self.nodes_list.append(middleArr)
             self.nodes_bool_list.append(bl)
-        return middleArr
+        return self.nodes_list[-1]
 
     def activation_func(self, input: np.array):
         rand = np.random.rand(*input.shape)
@@ -58,50 +71,55 @@ class StochNN:
 
     def backpropagation(self, desired_output: np.array):
         if desired_output.shape[0] != self.nodes_list[-1].shape[0]:
-            raise ValueError("Patter size error!")
+            raise ValueError("Pattern size error!")
+        desired_output_ = desired_output[np.newaxis].T
 
         def f_prime(index):
-            return (2.0 * BETA *
-                    self.nodes_list[index] * 1.0 - self.nodes_list[index]) * self.nodes_bool_list[index]
+            return (2.0 * BETA * self.nodes_list[index] * (1.0 - self.nodes_list[index])) * self.nodes_bool_list[index]
 
         deltas = [None] * (len(self.nodes_list) + 1)
-        deltas[-1] = (self.nodes_list[-1] - desired_output) * f_prime(-1)
 
+        deltas[-1] = (self.nodes_list[-1] - desired_output_) * f_prime(-1)
         for i in range(len(self.nodes_list) - 1, 0, -1):
-            deltas[i] = (self.weights_list[i + 1 - 1].transpose()
-                         @ deltas[i + 1]) * f_prime(i - 1)
+            deltas[i] = (self.weights_list[i].T @
+                         deltas[i + 1]) * f_prime(i - 1)
 
         for i, w in enumerate(self.weights_list):
             derivative = None
             if i == 0:
-                derivative = np.mat(
-                    deltas[i + 1]).transpose() @ self.last_input
+                derivative = deltas[1] @ self.last_input.T
             else:
-                derivative = np.mat(
-                    deltas[i + 1]).transpose() @ np.mat(self.nodes_list[i - 1])
-            self.weights_list[i] = np.array(w - ALPHA_W * derivative)
+                derivative = deltas[i + 1] @ self.nodes_list[i - 1].T
+            self.weights_list[i] = w - GAMMA_W * derivative
+
+        for i in range(len(self.bias_list)):
+            self.bias_list[i] -= GAMMA_B * deltas[i + 1]
 
 
 if __name__ == "__main__":
-    nn = StochNN(2, [10, 10], 1)
+    nn = StochNN(2, [30], 1)
     xor_map = [(np.array([1.0, 1.0]), np.array([0.0])),
                (np.array([1.0, 0.0]), np.array([1.0])),
                (np.array([0.0, 1.0]), np.array([1.0])),
                (np.array([0.0, 0.0]), np.array([0.0])),
                ]
+
     # learning
     learning_curve = []
-    BATCHES = 40
-    EPOCHS = 200
+    BATCHES = 10
+    EPOCHS = 1000
     for _ in range(EPOCHS):
         average = []
         for _ in range(BATCHES):
             for input, output in xor_map:
                 prediction = nn.feed_forward(input)
                 nn.backpropagation(output)
-            if prediction != 0.0:
                 average.append((prediction - output)**2)
         learning_curve.append(np.array(average).mean())
+
+    for input, output in xor_map:
+        p = nn.feed_forward(input)
+        print(input, output, p)
 
     from matplotlib import pyplot as plt
     plt.plot(learning_curve)
