@@ -2,9 +2,9 @@ from typing import List
 
 import numpy as np
 
-GAMMA_W = 0.02
+GAMMA_W = 0.6
 GAMMA_B = GAMMA_W
-BETA = 0.001
+BETA = 1.0
 
 
 class StochNN:
@@ -16,7 +16,7 @@ class StochNN:
         self.weights_list: List[np.array] = []
         self.bias_list: List[np.array] = []
         self.nodes_list: List[np.array] = []
-        self.nodes_bool_list: List[np.array] = []
+        self.avg_list: List[np.array] = []
 
         inputWeights = np.zeros((hiddenLayers[0], inputSize))
         self.weights_list.append(inputWeights)
@@ -33,16 +33,16 @@ class StochNN:
         self.weights_list.append(outputWeights)
         outputBias = np.zeros((outputSize, 1))
         self.bias_list.append(outputBias)
-        self.randomize_weights()
-        self.randomize_biases()
+        self.randomize_weights(1.0)
+        self.randomize_biases(1.0)
 
     def randomize_weights(self, maxRand: float = 1.0) -> None:
         self.weights_list[:] = [
-            maxRand * np.random.rand(*w.shape) for w in self.weights_list]
+            maxRand * (2.0 * np.random.rand(*w.shape) - 1.0) for w in self.weights_list]
 
     def randomize_biases(self, maxRand: float = 1.0) -> None:
         self.bias_list[:] = [
-            maxRand * np.random.rand(*b.shape) for b in self.bias_list]
+            maxRand * (2.0 * np.random.rand(*b.shape) - 1.0) for b in self.bias_list]
 
     def feed_forward(self, input: np.array) -> np.array:
         if input.shape[0] != self.inputSize:
@@ -58,31 +58,44 @@ class StochNN:
             else:
                 middleArr = w @ middleArr
             middleArr += self.bias_list[i]
-            middleArr, bl = self.activation_func(middleArr)
+            avg = None
+            if i == len(self.weights_list)-1:
+                middleArr, avg = self.activation_func_outside(middleArr)
+            else:
+                middleArr, avg = self.activation_func_inside(middleArr)
             self.nodes_list.append(middleArr)
-            self.nodes_bool_list.append(bl)
+            self.avg_list.append(avg)
         return self.nodes_list[-1]
 
-    def activation_func(self, input: np.array):
+    def activation_func_inside(self, input: np.array):
         rand = np.random.rand(*input.shape)
-        val = 1.0 / (1.0 + np.exp(-2.0 * BETA * input))
-        bl = (val > rand)
-        return val * bl, bl
+        val = 1.0 / (1.0 + np.exp(-BETA * input))
+        # val = np.tanh(BETA * input)
+        bl = 2.0 * (val > rand) - 1.0
+        return bl, val
+
+    def activation_func_outside(self, input: np.array):
+        val = 1.0 / (1.0 + np.exp(-BETA * input))
+        return val, val
 
     def backpropagation(self, desired_output: np.array):
         if desired_output.shape[0] != self.nodes_list[-1].shape[0]:
             raise ValueError("Pattern size error!")
         desired_output_ = desired_output[np.newaxis].T
 
-        def f_prime(index):
-            return (2.0 * BETA * self.nodes_list[index] * (1.0 - self.nodes_list[index])) * self.nodes_bool_list[index]
+        def f_prime_inside(index):
+            return 2.0 * (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
+
+        def f_prime_outside(index):
+            return (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
 
         deltas = [None] * (len(self.nodes_list) + 1)
 
-        deltas[-1] = (self.nodes_list[-1] - desired_output_) * f_prime(-1)
+        deltas[-1] = (self.nodes_list[-1] - desired_output_) * \
+            f_prime_outside(-1)
         for i in range(len(self.nodes_list) - 1, 0, -1):
             deltas[i] = (self.weights_list[i].T @
-                         deltas[i + 1]) * f_prime(i - 1)
+                         deltas[i + 1]) * f_prime_inside(i - 1)
 
         for i, w in enumerate(self.weights_list):
             derivative = None
@@ -97,7 +110,7 @@ class StochNN:
 
 
 if __name__ == "__main__":
-    nn = StochNN(2, [30], 1)
+    nn = StochNN(2, [32], 1)
     xor_map = [(np.array([1.0, 1.0]), np.array([0.0])),
                (np.array([1.0, 0.0]), np.array([1.0])),
                (np.array([0.0, 1.0]), np.array([1.0])),
@@ -107,7 +120,7 @@ if __name__ == "__main__":
     # learning
     learning_curve = []
     BATCHES = 10
-    EPOCHS = 1000
+    EPOCHS = 3000
     for _ in range(EPOCHS):
         average = []
         for _ in range(BATCHES):
@@ -116,10 +129,16 @@ if __name__ == "__main__":
                 nn.backpropagation(output)
                 average.append((prediction - output)**2)
         learning_curve.append(np.array(average).mean())
+        if learning_curve[-1] < 0.15:
+            GAMMA_W = GAMMA_B = 0.02
+        if learning_curve[-1] < 0.02:
+            break
 
-    for input, output in xor_map:
-        p = nn.feed_forward(input)
-        print(input, output, p)
+    for i in range(4):
+        for input, output in xor_map:
+            p = nn.feed_forward(input)
+            print(input, output, p)
+        print("\n")
 
     from matplotlib import pyplot as plt
     plt.plot(learning_curve)
