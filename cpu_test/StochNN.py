@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-GAMMA_W = 0.6
+GAMMA_W = 0.5
 GAMMA_B = GAMMA_W
 BETA = 1.0
 
@@ -78,7 +78,7 @@ class StochNN:
         val = 1.0 / (1.0 + np.exp(-BETA * input))
         return val, val
 
-    def backpropagation(self, desired_output: np.array):
+    def backpropagation(self, desired_output: np.array, average_input: float):
         if desired_output.shape[0] != self.nodes_list[-1].shape[0]:
             raise ValueError("Pattern size error!")
         desired_output_ = desired_output[np.newaxis].T
@@ -91,7 +91,7 @@ class StochNN:
 
         deltas = [None] * (len(self.nodes_list) + 1)
 
-        deltas[-1] = (self.nodes_list[-1] - desired_output_) * \
+        deltas[-1] = (average_input - desired_output_) * \
             f_prime_outside(-1)
         for i in range(len(self.nodes_list) - 1, 0, -1):
             deltas[i] = (self.weights_list[i].T @
@@ -119,26 +119,30 @@ if __name__ == "__main__":
 
     # learning
     learning_curve = []
-    BATCHES = 10
-    EPOCHS = 3000
+    MEASURE_POINTS = 10
+    EPOCHS = 200
+    SINGLE_AVERAGE = 20
     for _ in range(EPOCHS):
         average = []
-        for _ in range(BATCHES):
+        for _ in range(MEASURE_POINTS):
             for input, output in xor_map:
-                prediction = nn.feed_forward(input)
-                nn.backpropagation(output)
-                average.append((prediction - output)**2)
+                predictions = []
+                for _ in range(SINGLE_AVERAGE):
+                    predictions.append(nn.feed_forward(input))
+                pred_avg = np.array(predictions).mean()
+                nn.backpropagation(output, pred_avg)
+                average.append((pred_avg - output)**2)
         learning_curve.append(np.array(average).mean())
         if learning_curve[-1] < 0.15:
-            GAMMA_W = GAMMA_B = 0.02
+            GAMMA_W = GAMMA_B = 0.005
         if learning_curve[-1] < 0.02:
             break
 
-    for i in range(4):
-        for input, output in xor_map:
-            p = nn.feed_forward(input)
-            print(input, output, p)
-        print("\n")
+    for input, output in xor_map:
+        ps = [pred_avg]
+        for i in range(10):
+            ps.append(nn.feed_forward(input))
+        print(input, output, np.array(ps).mean())
 
     from matplotlib import pyplot as plt
     plt.plot(learning_curve)
