@@ -18,6 +18,8 @@ class StochNN:
         self.bias_list: List[np.array] = []
         self.nodes_list: List[np.array] = []
         self.avg_list: List[np.array] = []
+        self.gamma_w = GAMMA_W
+        self.gamma_b = GAMMA_B
 
         inputWeights = np.zeros((hiddenLayers[0], inputSize))
         self.weights_list.append(inputWeights)
@@ -48,6 +50,12 @@ class StochNN:
             self.inputSize = result[0]
             self.weights_list = result[1]
             self.bias_list = result[2]
+
+    def set_gammas(self, g_w=None, g_b=None):
+        if g_w != None:
+            self.gamma_w = g_w
+        if g_b != None:
+            self.gamma_b = g_b
 
     def randomize_weights(self, maxRand: float = 1.0) -> None:
         self.weights_list[:] = [
@@ -116,10 +124,10 @@ class StochNN:
                 derivative = deltas[1] @ self.last_input.T
             else:
                 derivative = deltas[i + 1] @ self.nodes_list[i - 1].T
-            self.weights_list[i] = w - GAMMA_W * derivative
+            self.weights_list[i] = w - self.gamma_w * derivative
 
         for i in range(len(self.bias_list)):
-            self.bias_list[i] -= GAMMA_B * deltas[i + 1]
+            self.bias_list[i] -= self.gamma_b * deltas[i + 1]
 
 
 if __name__ == "__main__":
@@ -148,7 +156,7 @@ if __name__ == "__main__":
                 average.append((pred_avg - output)**2)
         learning_curve.append(np.array(average).mean())
         if learning_curve[-1] < 0.15:
-            GAMMA_W = GAMMA_B = 0.005
+            nn.set_gammas(0.005, 0.005)
         if learning_curve[-1] < 0.02:
             break
 
@@ -158,7 +166,7 @@ if __name__ == "__main__":
             ps.append(nn.feed_forward(input))
         print(input, output, np.array(ps).mean())
 
-    nn.save_model("test.npz")
+    nn.save_model("test.stoch")
 
     from matplotlib import pyplot as plt
     plt.plot(learning_curve)
