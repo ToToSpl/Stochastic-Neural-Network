@@ -1,8 +1,9 @@
+import pickle
 from typing import List
 
 import numpy as np
 
-GAMMA_W = 0.5
+GAMMA_W = 0.2
 GAMMA_B = GAMMA_W
 BETA = 1.0
 
@@ -33,8 +34,20 @@ class StochNN:
         self.weights_list.append(outputWeights)
         outputBias = np.zeros((outputSize, 1))
         self.bias_list.append(outputBias)
-        self.randomize_weights(1.0)
-        self.randomize_biases(1.0)
+        self.randomize_weights(0.1)
+        self.randomize_biases(0.1)
+
+    def save_model(self, name):
+        data = [self.inputSize, self.weights_list, self.bias_list]
+        with open(name, 'wb') as outfile:
+            pickle.dump(data, outfile, pickle.HIGHEST_PROTOCOL)
+
+    def load_model(self, name):
+        with open(name, 'rb') as infile:
+            result = pickle.load(infile)
+            self.inputSize = result[0]
+            self.weights_list = result[1]
+            self.bias_list = result[2]
 
     def randomize_weights(self, maxRand: float = 1.0) -> None:
         self.weights_list[:] = [
@@ -120,7 +133,8 @@ if __name__ == "__main__":
     # learning
     learning_curve = []
     MEASURE_POINTS = 10
-    EPOCHS = 200
+    # EPOCHS = 6000
+    EPOCHS = 800
     SINGLE_AVERAGE = 20
     for _ in range(EPOCHS):
         average = []
@@ -139,10 +153,12 @@ if __name__ == "__main__":
             break
 
     for input, output in xor_map:
-        ps = [pred_avg]
+        ps = []
         for i in range(10):
             ps.append(nn.feed_forward(input))
         print(input, output, np.array(ps).mean())
+
+    nn.save_model("test.npz")
 
     from matplotlib import pyplot as plt
     plt.plot(learning_curve)
