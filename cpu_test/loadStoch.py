@@ -3,7 +3,7 @@ import numpy as np
 
 nn = StochNN(2, [32], 1)
 
-nn.load_model("test.npz")
+nn.load_model("test.stoch")
 
 xor_map = [(np.array([1.0, 1.0]), np.array([0.0])),
            (np.array([1.0, 0.0]), np.array([1.0])),
