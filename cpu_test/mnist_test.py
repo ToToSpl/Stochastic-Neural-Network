@@ -16,14 +16,12 @@ y_test = to_categorical(y_test)
 num_classes = y_test.shape[1]
 
 model = StochNN(num_pixels, [3*num_pixels, 2*num_pixels], num_classes)
-model.load_model("mnist.stoch")
+model.load_model("mnist_5.stoch")
 
 accuracy = 0.0
 acc_matrix = np.zeros((num_classes, num_classes))
 
 for i, x in enumerate(X_test):
-    if i % 100 == 0:
-        print(i)
     guess = np.argmax(model.feed_forward(x))
     target = np.argmax(y_test[i])
     acc_matrix[target, guess] += 1
