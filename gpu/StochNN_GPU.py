@@ -19,7 +19,6 @@ class StochNN_GPU:
         self.weights_list: List[cp.array] = []
         self.bias_list: List[cp.array] = []
         self.nodes_list: List[cp.array] = []
-        self.avg_list: List[cp.array] = []
         self.gamma_w = GAMMA_W
         self.gamma_b = GAMMA_B
 
@@ -40,6 +39,27 @@ class StochNN_GPU:
         self.bias_list.append(self.__random_matrix(
             RANDOM_START_RANGE, (outputSize, 1)))
 
+        # __ KERNELS __
+        self.activation_func_inside = cp.ElementwiseKernel(
+            "float32 x, float32 rand",
+            "float32 z",
+            """
+            float val = 1.0 / (1.0 + expf(-x));
+            if(val > rand)
+                z = 1.0;
+            else
+                z = -1.0;
+            """,
+            "activation_func_inside")
+
+        self.activation_func_outside = cp.ElementwiseKernel(
+            "float32 x",
+            "float32 y",
+            """
+            y = 1.0 / (1.0 / expf(-x));
+            """,
+            "activation_func_outside")
+
     def __random_matrix(self, range, size):
         arr = cp.random.rand(*size, dtype=cp.float32)
         arr = range * (2.0 * arr - 1.0)
@@ -54,8 +74,14 @@ class StochNN_GPU:
         with open(name, 'rb') as infile:
             result = pickle.load(infile)
             self.inputSize = result[0]
-            self.weights_list = result[1]
-            self.bias_list = result[2]
+            weights_list_cpu = result[1]
+            self.weights_list = []
+            for w in weights_list_cpu:
+                self.weights_list.append(cp.asarray(w))
+            bias_list_cpu = result[2]
+            self.bias_list = []
+            for b in bias_list_cpu:
+                self.bias_list.append(cp.asarray(b))
 
     def set_gammas(self, g_w=None, g_b=None):
         if g_w != None:
@@ -63,12 +89,13 @@ class StochNN_GPU:
         if g_b != None:
             self.gamma_b = g_b
 
-    def feed_forward(self, input: np.array) -> np.array:
+    def feed_forward(self, input: cp.array) -> cp.array:
         if input.shape[0] != self.inputSize:
             raise ValueError("Input Size error!")
 
         self.nodes_list = []
-        self.last_input = input[np.newaxis].T
+        self.last_input = input[cp.newaxis].T
+        # self.last_input = cp.asarray(input[np.newaxis].T)
 
         middleArr = None
         for i, w in enumerate(self.weights_list):
@@ -77,25 +104,13 @@ class StochNN_GPU:
             else:
                 middleArr = w @ middleArr
             middleArr += self.bias_list[i]
-            avg = None
             if i == len(self.weights_list)-1:
-                middleArr, avg = self.activation_func_outside(middleArr)
+                middleArr = self.activation_func_outside(middleArr)
             else:
-                middleArr, avg = self.activation_func_inside(middleArr)
+                middleArr = self.activation_func_inside(
+                    middleArr, self.__random_matrix(1.0, middleArr.shape))
             self.nodes_list.append(middleArr)
-            self.avg_list.append(avg)
         return self.nodes_list[-1]
-
-    def activation_func_inside(self, input: np.array):
-        rand = np.random.rand(*input.shape)
-        val = 1.0 / (1.0 + np.exp(-BETA * input))
-        # val = np.tanh(BETA * input)
-        bl = 2.0 * (val > rand) - 1.0
-        return bl, val
-
-    def activation_func_outside(self, input: np.array):
-        val = 1.0 / (1.0 + np.exp(-BETA * input))
-        return val, val
 
     def backpropagation(self, desired_output: np.array, average_input: float):
         if desired_output.shape[0] != self.nodes_list[-1].shape[0]:
@@ -129,14 +144,24 @@ class StochNN_GPU:
 
 
 if __name__ == "__main__":
-    nn = StochNN_GPU(200, [3200, 124, 123321], 100)
-    print("load finished")
-    bar = input("enter to close")
-    # xor_map = [(np.array([1.0, 1.0]), np.array([0.0])),
-    #            (np.array([1.0, 0.0]), np.array([1.0])),
-    #            (np.array([0.0, 1.0]), np.array([1.0])),
-    #            (np.array([0.0, 0.0]), np.array([0.0])),
-    #            ]
+    nn = StochNN_GPU(2, [3200], 1)
+    xor_map = [(cp.array([1.0, 1.0], dtype=cp.single),
+                cp.array([0.0], dtype=cp.single)),
+               (cp.array([1.0, 0.0], dtype=cp.single),
+                cp.array([1.0], dtype=cp.single)),
+               (cp.array([0.0, 1.0], dtype=cp.single),
+                cp.array([1.0], dtype=cp.single)),
+               (cp.array([0.0, 0.0], dtype=cp.single),
+                cp.array([0.0], dtype=cp.single)),
+               ]
+
+    import time
+    begin = time.time()
+    for _ in range(10000):
+        for input, output in xor_map:
+            nn.feed_forward(input)
+    end = time.time()
+    print(end - begin)
 
     # # learning
     # learning_curve = []
