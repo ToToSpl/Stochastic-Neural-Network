@@ -23,7 +23,7 @@ for i, x in enumerate(X_test):
 print(f"load time: {time.time() - begin}")
 
 model = StochNN_GPU(num_pixels, [3*num_pixels, 2*num_pixels], num_classes)
-model.load_model("test_mnists/mnist_66.stoch")
+model.load_model("mnist_15.stoch")
 
 accuracy = cp.zeros(1, dtype=cp.int32)
 # acc_matrix = np.zeros((num_classes, num_classes))
