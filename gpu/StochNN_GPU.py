@@ -6,7 +6,7 @@ import cupy as cp
 
 GAMMA_W = 0.2
 GAMMA_B = GAMMA_W
-BETA = 1.0
+
 RANDOM_START_RANGE = 0.1
 
 
@@ -60,6 +60,15 @@ class StochNN_GPU:
             """,
             "activation_func_outside")
 
+        self.f_prime_inside = cp.ElementwiseKernel(
+            "float32 x",
+            "float32 y",
+            """
+            y = 2.0 * x * (1.0 - x);
+            """,
+            "f_prime_inside"
+        )
+
     def __random_matrix(self, range, size):
         arr = cp.random.rand(*size, dtype=cp.float32)
         arr = range * (2.0 * arr - 1.0)
@@ -95,7 +104,7 @@ class StochNN_GPU:
 
         self.nodes_list = []
         # self.last_input = cp.asarray(input[cp.newaxis].T, dtype=cp.float32)
-        self.last_input = input[np.newaxis].T
+        self.last_input = input[cp.newaxis].T
 
         middleArr = None
         for i, w in enumerate(self.weights_list):
@@ -112,24 +121,22 @@ class StochNN_GPU:
             self.nodes_list.append(middleArr)
         return self.nodes_list[-1]
 
-    def backpropagation(self, desired_output: np.array, average_input: float):
-        if desired_output.shape[0] != self.nodes_list[-1].shape[0]:
-            raise ValueError("Pattern size error!")
-        desired_output_ = desired_output[np.newaxis].T
+    def backpropagation(self, desired_output: cp.array, average_input: float):
+        # if desired_output.shape[0] != self.nodes_list[-1].shape[0]:
+        #     raise ValueError("Pattern size error!")
+        desired_output_ = desired_output[cp.newaxis].T
 
-        def f_prime_inside(index):
-            return 2.0 * (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
-
-        def f_prime_outside(index):
-            return (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
+        f_prime_inside_arr = []
+        for n in self.nodes_list:
+            f_prime_inside_arr.append(self.f_prime_inside(n))
 
         deltas = [None] * (len(self.nodes_list) + 1)
 
         deltas[-1] = (average_input - desired_output_) * \
-            f_prime_outside(-1)
+            0.5 * f_prime_inside_arr[-1]
         for i in range(len(self.nodes_list) - 1, 0, -1):
             deltas[i] = (self.weights_list[i].T @
-                         deltas[i + 1]) * f_prime_inside(i - 1)
+                         deltas[i + 1]) * f_prime_inside_arr[i - 1]
 
         for i, w in enumerate(self.weights_list):
             derivative = None
@@ -159,7 +166,8 @@ if __name__ == "__main__":
     begin = time.time()
     for _ in range(10000):
         for input, output in xor_map:
-            nn.feed_forward(input)
+            pred = nn.feed_forward(input)
+            nn.backpropagation(output, pred)
     end = time.time()
     print(end - begin)
 
