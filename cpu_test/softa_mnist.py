@@ -21,14 +21,16 @@ num_classes = y_test.shape[1]
 
 model = Sequential()
 model.add(Dense(num_pixels, input_dim=num_pixels, activation='relu'))
-model.add(Dense(2*num_pixels, activation='sigmoid'))
+model.add(Dense(0.5*num_pixels, activation='sigmoid'))
+model.add(Dense(0.5*num_pixels, activation='sigmoid'))
+model.add(Dense(0.5*num_pixels, activation='sigmoid'))
 model.add(Dense(num_classes, activation='softmax'))
 
 model.compile(loss='categorical_crossentropy',
               optimizer='adam', metrics=['accuracy'])
 
 history = model.fit(X_train, y_train, validation_data=(
-    X_test, y_test), epochs=10, batch_size=200, verbose=1)
+    X_test, y_test), epochs=64, batch_size=200, verbose=1)
 
 testResults = model.predict(X_test)
 
@@ -68,5 +70,33 @@ print("Accuracy: ", accuracy_score(
 weighted avg       0.98      0.98      0.98     10000
 
 Cohen's Kappa: 0.9771013573070414
-Accuracy:  0.9794
+Accuracy:  0.9794[[ 971    1    0    0    0    1    3    0    1    3]
+ [   1 1128    1    0    0    0    2    1    2    0]
+ [   1    1 1016    3    1    0    1    3    6    0]
+ [   0    0    4  993    0    4    0    3    2    4]
+ [   1    0    1    0  967    0    4    2    1    6]
+ [   2    0    0    6    1  878    2    0    2    1]
+ [   2    3    1    1    1    3  947    0    0    0]
+ [   2    1   11    0    0    0    0 1008    1    5]
+ [   0    0    4    2    1    3    2    2  957    3]
+ [   2    2    0    1    7    3    0    1    1  992]]
+              precision    recall  f1-score   support
+
+           0       0.99      0.99      0.99       980
+           1       0.99      0.99      0.99      1135
+           2       0.98      0.98      0.98      1032
+           3       0.99      0.98      0.99      1010
+           4       0.99      0.98      0.99       982
+           5       0.98      0.98      0.98       892
+           6       0.99      0.99      0.99       958
+           7       0.99      0.98      0.98      1028
+           8       0.98      0.98      0.98       974
+           9       0.98      0.98      0.98      1009
+
+    accuracy                           0.99     10000
+   macro avg       0.99      0.99      0.99     10000
+weighted avg       0.99      0.99      0.99     10000
+
+Cohen's Kappa: 0.9841049152070588
+Accuracy:  0.9857
 '''
