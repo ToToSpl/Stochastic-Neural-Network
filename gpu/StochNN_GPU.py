@@ -56,7 +56,7 @@ class StochNN_GPU:
             "float32 x",
             "float32 y",
             """
-            y = 1.0 / (1.0 / expf(-x));
+            y = 1.0 / (1.0 + expf(-x));
             """,
             "activation_func_outside")
 
@@ -77,11 +77,11 @@ class StochNN_GPU:
             weights_list_cpu = result[1]
             self.weights_list = []
             for w in weights_list_cpu:
-                self.weights_list.append(cp.asarray(w))
+                self.weights_list.append(cp.asarray(w, dtype=cp.float32))
             bias_list_cpu = result[2]
             self.bias_list = []
             for b in bias_list_cpu:
-                self.bias_list.append(cp.asarray(b))
+                self.bias_list.append(cp.asarray(b, dtype=cp.float32))
 
     def set_gammas(self, g_w=None, g_b=None):
         if g_w != None:
@@ -90,12 +90,12 @@ class StochNN_GPU:
             self.gamma_b = g_b
 
     def feed_forward(self, input: cp.array) -> cp.array:
-        if input.shape[0] != self.inputSize:
-            raise ValueError("Input Size error!")
+        # if input.shape[0] != self.inputSize:
+        #     raise ValueError("Input Size error!")
 
         self.nodes_list = []
-        self.last_input = input[cp.newaxis].T
-        # self.last_input = cp.asarray(input[np.newaxis].T)
+        # self.last_input = cp.asarray(input[cp.newaxis].T, dtype=cp.float32)
+        self.last_input = input[np.newaxis].T
 
         middleArr = None
         for i, w in enumerate(self.weights_list):
@@ -108,7 +108,7 @@ class StochNN_GPU:
                 middleArr = self.activation_func_outside(middleArr)
             else:
                 middleArr = self.activation_func_inside(
-                    middleArr, self.__random_matrix(1.0, middleArr.shape))
+                    middleArr, cp.random.rand(*middleArr.shape, dtype=cp.float32))
             self.nodes_list.append(middleArr)
         return self.nodes_list[-1]
 

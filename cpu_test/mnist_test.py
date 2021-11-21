@@ -16,7 +16,7 @@ y_test = to_categorical(y_test)
 num_classes = y_test.shape[1]
 
 model = StochNN(num_pixels, [3*num_pixels, 2*num_pixels], num_classes)
-model.load_model("mnist_5.stoch")
+model.load_model("test_mnists/mnist_66.stoch")
 
 accuracy = 0.0
 acc_matrix = np.zeros((num_classes, num_classes))
