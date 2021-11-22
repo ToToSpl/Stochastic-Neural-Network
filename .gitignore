@@ -1,4 +1,6 @@
-cpu_test/__pycache__
+__pycache__/
 test.stoch
 mnist.stoch
 test_mnists/
+*.stoch
+.vscode
