@@ -100,8 +100,8 @@ if __name__ == "__main__":
 
     # learning
     learning_curve = []
-    BATCHES = 10
-    EPOCHS = 3000
+    BATCHES = 4
+    EPOCHS = 2200
     for _ in range(EPOCHS):
         average = []
         for _ in range(BATCHES):
@@ -116,5 +116,9 @@ if __name__ == "__main__":
         print(input, output, p)
 
     from matplotlib import pyplot as plt
+
+    plt.title("Accuracy in each epoch")
+    plt.xlabel("epochs")
+    plt.ylabel("(x-t)^2")
     plt.plot(learning_curve)
     plt.show()
