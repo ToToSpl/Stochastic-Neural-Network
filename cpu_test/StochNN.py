@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-GAMMA_W = 0.2
+GAMMA_W = 0.15
 GAMMA_B = GAMMA_W
 BETA = 1.0
 
@@ -11,7 +11,7 @@ BETA = 1.0
 class StochNN:
     def __init__(self, inputSize: int, hiddenLayers: List[int], outputSize: int):
         if len(hiddenLayers) == 0:
-            raise ValueError("Netowork must have hidden layer!")
+            raise ValueError("Network must have hidden layer!")
 
         self.inputSize = inputSize
         self.weights_list: List[np.array] = []
@@ -105,10 +105,11 @@ class StochNN:
         desired_output_ = desired_output[np.newaxis].T
 
         def f_prime_inside(index):
-            return 2.0 * (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
+            return self.nodes_list[index]
+            #return 2.0 * (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
 
         def f_prime_outside(index):
-            return (BETA * self.nodes_list[index] * (1.0 - BETA * self.nodes_list[index]))
+            return (self.nodes_list[index] * (1.0 -  self.nodes_list[index]))
 
         deltas = [None] * (len(self.nodes_list) + 1)
 
@@ -140,25 +141,25 @@ if __name__ == "__main__":
 
     # learning
     learning_curve = []
-    MEASURE_POINTS = 10
+    MEASURE_POINTS = 40
     # EPOCHS = 6000
-    EPOCHS = 800
+    EPOCHS = 1600
     SINGLE_AVERAGE = 20
     for _ in range(EPOCHS):
         average = []
         for _ in range(MEASURE_POINTS):
             for input, output in xor_map:
-                predictions = []
-                for _ in range(SINGLE_AVERAGE):
-                    predictions.append(nn.feed_forward(input))
-                pred_avg = np.array(predictions).mean()
-                nn.backpropagation(output, pred_avg)
-                average.append((pred_avg - output)**2)
+                # predictions = []
+                # for _ in range(SINGLE_AVERAGE):
+                #     predictions.append(nn.feed_forward(input))
+                # pred_avg = np.array(predictions).mean()
+                # nn.backpropagation(output, pred_avg)
+                # average.append((pred_avg - output)**2)
+                val = nn.feed_forward(input)
+                nn.backpropagation(output, val)
+                average.append((val - output)**2)
         learning_curve.append(np.array(average).mean())
-        if learning_curve[-1] < 0.15:
-            nn.set_gammas(0.005, 0.005)
-        if learning_curve[-1] < 0.02:
-            break
+
 
     for input, output in xor_map:
         ps = []
