@@ -89,10 +89,16 @@ class StochNN:
         return self.nodes_list[-1]
 
     def activation_func_inside(self, input: np.array):
+        # create vector of random values, uniformly distributed from 0 to 1
         rand = np.random.rand(*input.shape)
-        val = 1.0 / (1.0 + np.exp(-BETA * input))
-        # val = np.tanh(BETA * input)
+
+        # calculate probability of activation using sigmoid
+        val = 1.0 / (1.0 + np.exp(-input))
+
+        # change vector of boolean values to 1 and -1 values
         bl = 2.0 * (val > rand) - 1.0
+
+        # return activation vector and sigmoid for debugging
         return bl, val
 
     def activation_func_outside(self, input: np.array):
@@ -163,12 +169,16 @@ if __name__ == "__main__":
 
     for input, output in xor_map:
         ps = []
-        for i in range(10):
+        for i in range(100):
             ps.append(nn.feed_forward(input))
-        print(input, output, np.array(ps).mean())
+        npArr = np.array(ps)
+        print(input, output, np.mean(npArr), np.std(npArr))
 
     nn.save_model("test.stoch")
 
     from matplotlib import pyplot as plt
+    plt.title("Accuracy in each epoch")
+    plt.xlabel("epochs")
+    plt.ylabel("(x-t)^2")
     plt.plot(learning_curve)
     plt.show()

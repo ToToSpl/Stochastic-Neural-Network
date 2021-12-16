@@ -31,8 +31,10 @@ class ClassicNN:
         self.weights_list.append(outputWeights)
         outputBias = np.zeros((outputSize, 1))
         self.bias_list.append(outputBias)
-        self.randomize_weights()
-        self.randomize_biases()
+        self.randomize_weights(0.1)
+        self.randomize_biases(0.1)
+        self.gamma_w = GAMMA_W
+        self.gamma_b = GAMMA_B
 
     def randomize_weights(self, maxRand: float = 1.0) -> None:
         self.weights_list[:] = [
@@ -84,10 +86,16 @@ class ClassicNN:
                 derivative = deltas[1] @ self.last_input.T
             else:
                 derivative = deltas[i + 1] @ self.nodes_list[i - 1].T
-            self.weights_list[i] = w - GAMMA_W * derivative
+            self.weights_list[i] = w - self.gamma_w * derivative
 
         for i in range(len(self.bias_list)):
-            self.bias_list[i] -= GAMMA_B * deltas[i + 1]
+            self.bias_list[i] -= self.gamma_b * deltas[i + 1]
+
+    def set_gammas(self, g_w=None, g_b=None):
+        if g_w != None:
+            self.gamma_w = g_w
+        if g_b != None:
+            self.gamma_b = g_b
 
 
 if __name__ == "__main__":
