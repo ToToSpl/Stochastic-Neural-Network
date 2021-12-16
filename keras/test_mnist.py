@@ -23,14 +23,15 @@ num_classes = y_test.shape[1]
 model = Sequential()
 model.add(Stochastic(2*num_pixels, input_dim=num_pixels))
 model.add(Stochastic(2*num_pixels))
+# model.add(Dense(num_pixels, activation='sigmoid'))
 model.add(Dense(num_classes, activation='sigmoid'))
 
 model.compile(loss='categorical_crossentropy',
-              optimizer='sgd', metrics=['accuracy'])
-model.optimizer.lr.assign(0.00005)
+              optimizer='SGD', metrics=['accuracy'])
+# model.optimizer.lr.assign(0.0005)
 
 history = model.fit(X_train, y_train, validation_data=(
-    X_test, y_test), epochs=16, batch_size=1, verbose=1)
+    X_test, y_test), epochs=64, batch_size=60, verbose=1)
 
 testResults = model.predict(X_test)
 

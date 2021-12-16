@@ -6,6 +6,7 @@ import cupy as cp
 import time
 
 EPOCHS = 16
+LOG_RATE = 500
 
 (X_train, y_train), _ = mnist.load_data()
 num_pixels = X_train.shape[1] * X_train.shape[2]
@@ -31,8 +32,8 @@ print(f"load time: {time.time() - begin}")
 num_classes = y_train.shape[1]
 
 model = StochNN_GPU(num_pixels, [int(2*num_pixels), int(2*num_pixels)], num_classes)
-model.load_model("test_mnists/mnist_78proc.stoch")
-model.set_gammas(0.00005, 0.00005)
+model.load_model("mnist_point.stoch")
+model.set_gammas(0.000005, 0.000005)
 
 
 for i in range(EPOCHS):
@@ -45,9 +46,9 @@ for i in range(EPOCHS):
         if cp.argmax(res) == cp.argmax(y_train_gpu[j]):
             acc += 1
         model.backpropagation(y_train_gpu[j], res)
-        if j % 2000 == 0 and j != 0:
+        if j % LOG_RATE == 0 and j != 0:
             proc = j/train_size * 100
-            accuracy = acc.get() / 2000
+            accuracy = acc.get() / LOG_RATE
             print("epoch: {}\tacc: {:.2f}\tproc: {:.1f}".format(
                 i, accuracy[0], proc))
             acc = cp.zeros(1, dtype=cp.int32)

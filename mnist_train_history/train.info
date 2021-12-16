@@ -1,0 +1,7 @@
+MNIST LEARNING
+log_5-4.txt -> too high learning rate
+log_5-5.txt -> too slow
+log_1-4.txt -> optimal learning rate
+after that 12 epoch taken and continue train with lower lr
+log_5-6-joined.txt -> no visible change
+
