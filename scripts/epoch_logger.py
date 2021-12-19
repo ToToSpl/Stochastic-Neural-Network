@@ -33,10 +33,11 @@ for i in range(1, len(epochs)):
 acc_l.append(acc[-1])
 epochs_l.append(math.ceil(epochs[-1]))
 
-titleLR = 0.005
+titleLR = 1e-4
 plt.title(f"Training at learning rate: {titleLR}")
 plt.xlabel("Epochs")
 plt.ylabel("Accuracy")
-plt.plot(epochs, acc)
-plt.plot(epochs_l, acc_l)
+plt.plot(epochs, acc, label="accuracy during epoch")
+plt.plot(epochs_l, acc_l, label="epoch final accuracy")
+plt.legend(loc="upper left")
 plt.show()
