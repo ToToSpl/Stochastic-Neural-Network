@@ -8,6 +8,14 @@ class Stochastic(keras.layers.Layer):
         self.units = int(units)
         self.input_dim = input_dim
 
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'units': self.units,
+            'input_dim': self.input_dim
+        })
+        return config
+
     def build(self, input_shape):
         in_shape = self.input_dim if self.input_dim != None else input_shape[-1]
         w_init = tf.random_uniform_initializer(
