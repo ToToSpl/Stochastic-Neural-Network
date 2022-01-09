@@ -31,49 +31,50 @@ for i in range(64):
         model.backpropagation(y_train_gpu[j], pred)
     print(i)
 
-# y_pred = []
-# for t in X_train_gpu:
-#     temp = model.feed_forward(t)
-#     for _ in range(9):
-#         temp += model.feed_forward(t)
-#     y_pred.append(temp * 0.1)
+y_pred = []
+for t in X_train_gpu:
+    temp = model.feed_forward(t)
+    for _ in range(99):
+        temp += model.feed_forward(t)
+    y_pred.append(temp * 0.01)
 
-# y_pred = cp.array(y_pred)
-# y_pred = 2.0 * y_pred - cp.ones(y_pred.shape)
-# y_train = 2.0 * y_train - np.ones(y_train.shape)
-# y_pred = y_pred.get()
+y_pred = cp.array(y_pred)
+y_pred = 2.0 * y_pred - cp.ones(y_pred.shape)
+y_train = 2.0 * y_train - np.ones(y_train.shape)
+y_pred = y_pred.get()
 
-# plt.quiver(X_train[:, 0], X_train[:, 1], y_train[:, 0], y_train[:, 1], color='b' )
-# plt.quiver(X_train[:, 0], X_train[:, 1], y_pred[:, 0], y_pred[:, 1], color='r')
-# plt.show()
+plt.quiver(X_train[:, 0], X_train[:, 1], y_train[:, 0], y_train[:, 1], color='b', label='vector field')
+plt.quiver(X_train[:, 0], X_train[:, 1], y_pred[:, 0], y_pred[:, 1], color='r', label='average network output')
+plt.legend()
+plt.show()
 
 
-STEP_SIZE = 0.1
-STEPS = 5000
+# STEP_SIZE = 0.1
+# STEPS = 5000
 
-start_point = cp.array([0.5, 0.5], dtype=cp.float32)
+# start_point = cp.array([0.5, 0.5], dtype=cp.float32)
 
-positions = cp.zeros((STEPS, 2), dtype=cp.float32)
-positions[0] = start_point
-rand_positions = np.zeros((STEPS, 2))
-rand_start_point = np.array([0.5, 0.5])
-rand_positions[0] = start_point.get()
-for i in range(1, STEPS):
-    vec = model.feed_forward(positions[i - 1])
-    vec = 2.0 * vec - 1.0
-    next_pos = positions[i - 1] + STEP_SIZE * vec.reshape((1,2))
-    positions[i] = next_pos.reshape((2))
-    rand_vec = 2.0 * np.random.rand(2) - 1.0
-    rand_vec = rand_vec / np.linalg.norm(rand_vec)
-    rand_vec *= cp.linalg.norm(vec).get()
-    next_pos = rand_positions[i - 1] + STEP_SIZE * rand_vec.reshape((1,2))
-    rand_positions[i] = next_pos.reshape((2))
+# positions = cp.zeros((STEPS, 2), dtype=cp.float32)
+# positions[0] = start_point
+# rand_positions = np.zeros((STEPS, 2))
+# rand_start_point = np.array([0.5, 0.5])
+# rand_positions[0] = start_point.get()
+# for i in range(1, STEPS):
+#     vec = model.feed_forward(positions[i - 1])
+#     vec = 2.0 * vec - 1.0
+#     next_pos = positions[i - 1] + STEP_SIZE * vec.reshape((1,2))
+#     positions[i] = next_pos.reshape((2))
+#     rand_vec = 2.0 * np.random.rand(2) - 1.0
+#     rand_vec = rand_vec / np.linalg.norm(rand_vec)
+#     rand_vec *= cp.linalg.norm(vec).get()
+#     next_pos = rand_positions[i - 1] + STEP_SIZE * rand_vec.reshape((1,2))
+#     rand_positions[i] = next_pos.reshape((2))
 
-positions = positions.get()
+# positions = positions.get()
 
     
 
-plt.plot(rand_positions[:, 0], rand_positions[:, 1], color='r', label="random direction")
-plt.plot(positions[:, 0], positions[:, 1], color='b', label="NN set direction")
-plt.legend(loc="upper right")
-plt.show()
+# plt.plot(rand_positions[:, 0], rand_positions[:, 1], color='r', label="random direction")
+# plt.plot(positions[:, 0], positions[:, 1], color='b', label="NN set direction")
+# plt.legend(loc="upper right")
+# plt.show()

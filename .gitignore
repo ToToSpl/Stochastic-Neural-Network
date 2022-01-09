@@ -2,5 +2,5 @@ __pycache__/
 test.stoch
 mnist.stoch
 test_mnists/
-*.stoch
+# *.stoch
 .vscode
